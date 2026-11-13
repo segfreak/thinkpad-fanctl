@@ -72,28 +72,48 @@ impl Curve {
             if parts.len() != 3 {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("line {}: expected 3 columns (<up> <down> <level>)", line_num + 1),
+                    format!(
+                        "line {}: expected 3 columns (<up> <down> <level>)",
+                        line_num + 1
+                    ),
                 ));
             }
 
             let up: i32 = parts[0].parse().map_err(|_| {
                 io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("line {}: invalid up temperature '{}'", line_num + 1, parts[0]),
+                    format!(
+                        "line {}: invalid up temperature '{}'",
+                        line_num + 1,
+                        parts[0]
+                    ),
                 )
             })?;
 
             let down: i32 = parts[1].parse().map_err(|_| {
                 io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("line {}: invalid down temperature '{}'", line_num + 1, parts[1]),
+                    format!(
+                        "line {}: invalid down temperature '{}'",
+                        line_num + 1,
+                        parts[1]
+                    ),
                 )
             })?;
 
             let level = parts[2];
             let valid_level = matches!(
                 level,
-                "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "auto" | "disengaged" | "full-speed"
+                "0" | "1"
+                    | "2"
+                    | "3"
+                    | "4"
+                    | "5"
+                    | "6"
+                    | "7"
+                    | "auto"
+                    | "disengaged"
+                    | "full-speed"
             );
             if !valid_level {
                 return Err(io::Error::new(
@@ -216,11 +236,18 @@ fn main() {
     let _ = pretty_env_logger::try_init();
 
     let fanctrl = fs::read_to_string(FANCONTROL_PATH).expect("fancontrol read error");
-    assert!(fanctrl.starts_with('Y'));
+    if fanctrl.trim() != "Y" {
+        eprintln!("thinkpad_acpi fan control is disabled");
+        std::process::exit(1);
+    }
 
     let curve = match Curve::from_config(CONFIG_PATH) {
         Ok(c) => {
-            log::info!("loaded {} curve points from {}", c.points.len(), CONFIG_PATH);
+            log::info!(
+                "loaded {} curve points from {}",
+                c.points.len(),
+                CONFIG_PATH
+            );
             c
         }
         Err(e) if e.kind() == io::ErrorKind::NotFound => {
